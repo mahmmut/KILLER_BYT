@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kamera-Streaming</title>
+</head>
+<body>
+    <h1>Kamera-Streaming</h1>
+    <p id="status">Warte auf Verbindung...</p>
+    <button id="startCamera" style="display:none;">Kamera starten</button>
+    <video id="localVideo" autoplay muted style="display:none;"></video>
+    <video id="remoteVideo" autoplay></video>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        const socket = io("https://dein-server-url.com"); // Ersetze durch die URL deines Servers
+        const startButton = document.getElementById("startCamera");
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+        const status = document.getElementById("status");
+
+        let localStream;
+
+        // Verbindung mit dem Server
+        socket.on("connect", () => {
+            status.textContent = "Verbunden. Warten auf Befehle...";
+            socket.on("start-camera", async () => {
+                // Zeige den Start-Button nur, wenn der Befehl kommt
+                startButton.style.display = "block";
+            });
+        });
+
+        // Kamera starten und Stream senden
+        startButton.addEventListener("click", async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                localVideo.srcObject = localStream;
+                localVideo.style.display = "block";
+
+                // Sende den Stream an den Server oder direkt an Gerät 1 (WebRTC kann hier eingebaut werden)
+                socket.emit("stream-video", localStream);
+            } catch (err) {
+                alert("Kamera konnte nicht gestartet werden: " + err.message);
+            }
+        });
+
+        // Empfange den Videostream von einem anderen Gerät
+        socket.on("receive-video", (stream) => {
+            remoteVideo.srcObject = stream;
+        });
+    </script>
+</body>
+</html>
